@@ -1,4 +1,5 @@
 import uuid
+from datetime import datetime, timezone
 
 from asyncpg import Connection
 from fastapi import APIRouter, Depends, HTTPException
@@ -82,19 +83,25 @@ async def kyc_webhook(
     passed = payload.ResultCode == "0810"
     new_status = "passed" if passed else "failed"
     failure_reason = None if passed else payload.ResultText
+    # Computed in Python rather than a SQL CASE on the same placeholder as the
+    # enum column assignment below — asyncpg's prepared-statement type
+    # inference can't reconcile "$1 used as kyc_status" with "$1 compared to
+    # a text literal" in the same statement (AmbiguousParameterError).
+    verified_at = datetime.now(timezone.utc).replace(tzinfo=None) if passed else None
 
     row = await conn.fetchrow(
         """
         UPDATE kyc_verification
         SET status          = $1,
             "failureReason" = $2,
-            "verifiedAt"    = CASE WHEN $1 = 'passed' THEN NOW() ELSE NULL END,
+            "verifiedAt"    = $3,
             "updatedAt"     = NOW()
-        WHERE "smileJobId" = $3
+        WHERE "smileJobId" = $4
         RETURNING id, "userId"
         """,
         new_status,
         failure_reason,
+        verified_at,
         payload.SmileJobID,
     )
     if row is None:
