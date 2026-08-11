@@ -69,6 +69,15 @@ export const ledgerEntryTypeEnum = pgEnum("ledger_entry_type", [
   "fee",
 ])
 
+export const serviceBookingStatusEnum = pgEnum("service_booking_status", [
+  "requested",
+  "accepted",
+  "declined",
+  "in_progress",
+  "completed",
+  "cancelled",
+])
+
 // ─── Auth.js required tables ──────────────────────────────────────────────────
 // Column names must match exactly what @auth/drizzle-adapter expects.
 // FieFind-specific columns are added alongside them; the adapter ignores extras.
@@ -303,6 +312,29 @@ export const payments = pgTable("payment", {
   createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
 })
 
+// ─── Service marketplace (lease/property-independent) ────────────────────────
+
+export const serviceBookings = pgTable("service_booking", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  requesterId: text("requesterId")
+    .notNull()
+    .references(() => users.id),
+  providerId: text("providerId")
+    .notNull()
+    .references(() => users.id),
+  propertyId: text("propertyId").references(() => properties.id),
+  title: text("title").notNull(),
+  category: text("category").notNull(),
+  description: text("description"),
+  status: serviceBookingStatusEnum("status").notNull().default("requested"),
+  agreedPricePesewas: integer("agreedPricePesewas"),
+  scheduledFor: timestamp("scheduledFor", { mode: "date" }),
+  createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
+  updatedAt: timestamp("updatedAt", { mode: "date" }).notNull().defaultNow(),
+})
+
 // ─── Inferred types ───────────────────────────────────────────────────────────
 
 export type User = typeof users.$inferSelect
@@ -315,3 +347,4 @@ export type MaintenanceTicket = typeof maintenanceTickets.$inferSelect
 export type KycVerification = typeof kycVerifications.$inferSelect
 export type EscrowEntry = typeof escrowLedger.$inferSelect
 export type Payment = typeof payments.$inferSelect
+export type ServiceBooking = typeof serviceBookings.$inferSelect
