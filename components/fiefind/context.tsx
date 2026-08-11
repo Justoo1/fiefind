@@ -123,6 +123,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     navPayments: () => dispatch({ type: "SET_VIEW", view: "payments" }),
     navMaint: () => dispatch({ type: "SET_VIEW", view: "maintenance" }),
     navMarket: () => dispatch({ type: "SET_VIEW", view: "marketplace" }),
+    navMyBookings: () => dispatch({ type: "SET_VIEW", view: "my_bookings" }),
     navKyc: () => dispatch({ type: "SET_VIEW", view: "kyc" }),
     navProfile: () => dispatch({ type: "SET_VIEW", view: "profile" }),
     navDash: () => dispatch({ type: "SET_VIEW", view: "lord_dash" }),

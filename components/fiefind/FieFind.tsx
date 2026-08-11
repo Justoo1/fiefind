@@ -28,6 +28,7 @@ import {
   MarketplaceView,
   ServiceRequestView,
   ProviderBookingsView,
+  MyServiceRequestsView,
   KycView,
   ProfileView,
 } from "./tenant-portals"
@@ -137,6 +138,7 @@ function AppContent() {
             {view === "maintenance" && <MaintenanceView />}
             {view === "marketplace" && <MarketplaceView />}
             {view === "service" && <ServiceRequestView />}
+            {view === "my_bookings" && <MyServiceRequestsView />}
             {view === "provider_bookings" && <ProviderBookingsView />}
             {view === "lord_dash" && <LordDashboardView />}
             {view === "lord_listings" && <LordListingsView />}

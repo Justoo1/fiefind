@@ -19,6 +19,7 @@ export type TenantView =
   | "maintenance"
   | "marketplace"
   | "service"
+  | "my_bookings"
   | "kyc"
   | "profile"
 
@@ -215,6 +216,7 @@ export interface AppActions {
   navPayments: () => void
   navMaint: () => void
   navMarket: () => void
+  navMyBookings: () => void
   navKyc: () => void
   navProfile: () => void
   navDash: () => void

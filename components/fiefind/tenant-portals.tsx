@@ -23,6 +23,7 @@ import {
   useServiceBookings,
   useRespondToServiceBooking,
   useUpdateServiceBookingStatus,
+  usePayForServiceBooking,
 } from "@/hooks/useTenant"
 import type {
   LeaseOut,
@@ -3677,6 +3678,250 @@ export function ProviderBookingsView() {
           }}
         >
           No service requests yet.
+        </div>
+      )}
+    </div>
+  )
+}
+
+// ── Requester: my sent service requests ───────────────────────────────────────
+
+export function MyServiceRequestsView() {
+  const { data: bookings, isLoading } = useServiceBookings()
+  const payMutation = usePayForServiceBooking()
+  const statusMutation = useUpdateServiceBookingStatus()
+  const [phoneDrafts, setPhoneDrafts] = useState<Record<string, string>>({})
+  const [payingId, setPayingId] = useState<string | null>(null)
+
+  function handlePay(bookingId: string) {
+    const phone = phoneDrafts[bookingId]?.trim()
+    if (!phone) return
+    payMutation.mutate(
+      { bookingId, phoneNumber: phone },
+      { onSuccess: () => setPayingId(null) }
+    )
+  }
+
+  function handleComplete(bookingId: string) {
+    statusMutation.mutate({ bookingId, status: "completed" })
+  }
+
+  function handleCancel(bookingId: string) {
+    statusMutation.mutate({ bookingId, status: "cancelled" })
+  }
+
+  return (
+    <div style={{ maxWidth: 780, margin: "0 auto", padding: "28px 32px 48px" }}>
+      <h1
+        style={{
+          fontSize: 24,
+          fontWeight: 800,
+          letterSpacing: "-.02em",
+          margin: "0 0 4px",
+        }}
+      >
+        My service requests
+      </h1>
+      <p
+        style={{ color: "var(--text-muted)", margin: "0 0 22px", fontSize: 14 }}
+      >
+        Track the providers you've hired through the marketplace.
+      </p>
+
+      {isLoading ? (
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div
+              key={i}
+              className="ph-gradient"
+              style={{ height: 90, borderRadius: 12 }}
+            />
+          ))}
+        </div>
+      ) : (bookings ?? []).length > 0 ? (
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          {(bookings ?? []).map((b) => (
+            <div
+              key={b.id}
+              style={{
+                border: "1px solid var(--ff-border)",
+                borderRadius: 12,
+                background: "var(--bg-surface)",
+                padding: 18,
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "flex-start",
+                  gap: 12,
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: 15, fontWeight: 700 }}>{b.title}</div>
+                  <div
+                    style={{
+                      fontSize: 12,
+                      color: "var(--text-muted)",
+                      marginTop: 2,
+                    }}
+                  >
+                    {b.category} · {b.provider_name ?? "Provider"}
+                    {b.scheduled_for && ` · ${fmtDate(b.scheduled_for)}`}
+                  </div>
+                </div>
+                <BookingStatusBadge status={b.status} />
+              </div>
+
+              {b.status === "requested" && (
+                <div
+                  style={{
+                    fontSize: 12,
+                    color: "var(--text-muted)",
+                    marginTop: 14,
+                  }}
+                >
+                  Waiting for {b.provider_name ?? "the provider"} to respond.{" "}
+                  <button
+                    onClick={() => handleCancel(b.id)}
+                    disabled={statusMutation.isPending}
+                    style={{
+                      background: "none",
+                      border: "none",
+                      color: "var(--state-error)",
+                      cursor: "pointer",
+                      font: "inherit",
+                      fontSize: 12,
+                      fontWeight: 600,
+                      padding: 0,
+                    }}
+                  >
+                    Cancel
+                  </button>
+                </div>
+              )}
+
+              {b.status === "accepted" && (
+                <div style={{ marginTop: 14 }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      justifyContent: "space-between",
+                      alignItems: "center",
+                      marginBottom: payingId === b.id ? 10 : 0,
+                    }}
+                  >
+                    <span style={{ fontSize: 13, fontWeight: 600 }}>
+                      Agreed price: ₵
+                      {b.agreed_price_pesewas != null
+                        ? pesewasToGhs(b.agreed_price_pesewas)
+                        : "—"}
+                    </span>
+                    {payingId !== b.id && (
+                      <button
+                        onClick={() => setPayingId(b.id)}
+                        style={{
+                          padding: "10px 16px",
+                          background: "var(--ff-accent)",
+                          color: "#fff",
+                          border: "none",
+                          borderRadius: 8,
+                          font: "inherit",
+                          fontSize: 13,
+                          fontWeight: 700,
+                          cursor: "pointer",
+                        }}
+                      >
+                        Pay now
+                      </button>
+                    )}
+                  </div>
+                  {payingId === b.id && (
+                    <div style={{ display: "flex", gap: 8 }}>
+                      <input
+                        type="tel"
+                        placeholder="Mobile money number"
+                        value={phoneDrafts[b.id] ?? ""}
+                        onChange={(e) =>
+                          setPhoneDrafts((d) => ({
+                            ...d,
+                            [b.id]: e.target.value,
+                          }))
+                        }
+                        style={{ ...inputStyle, marginBottom: 0, flex: 1 }}
+                      />
+                      <button
+                        onClick={() => handlePay(b.id)}
+                        disabled={payMutation.isPending || !phoneDrafts[b.id]}
+                        style={{
+                          padding: "10px 16px",
+                          background: "var(--ff-accent)",
+                          color: "#fff",
+                          border: "none",
+                          borderRadius: 8,
+                          font: "inherit",
+                          fontSize: 13,
+                          fontWeight: 700,
+                          cursor: "pointer",
+                          opacity:
+                            payMutation.isPending || !phoneDrafts[b.id]
+                              ? 0.6
+                              : 1,
+                        }}
+                      >
+                        {payMutation.isPending ? "Paying…" : "Confirm"}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              )}
+
+              {b.status === "in_progress" && (
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    marginTop: 14,
+                  }}
+                >
+                  <span style={{ fontSize: 12, color: "var(--text-muted)" }}>
+                    Job in progress.
+                  </span>
+                  <button
+                    onClick={() => handleComplete(b.id)}
+                    disabled={statusMutation.isPending}
+                    style={{
+                      padding: "10px 16px",
+                      background: "var(--ff-accent)",
+                      color: "#fff",
+                      border: "none",
+                      borderRadius: 8,
+                      font: "inherit",
+                      fontSize: 13,
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      opacity: statusMutation.isPending ? 0.6 : 1,
+                    }}
+                  >
+                    Mark complete
+                  </button>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div
+          style={{
+            textAlign: "center",
+            padding: "48px 0",
+            color: "var(--text-muted)",
+            fontSize: 14,
+          }}
+        >
+          No service requests yet. Visit the marketplace to hire a provider.
         </div>
       )}
     </div>

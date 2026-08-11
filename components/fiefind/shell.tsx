@@ -625,6 +625,12 @@ export function Sidebar() {
             <ShopIcon />,
             actions.navMarket
           )}
+          {navBtn(
+            "My service requests",
+            "my_bookings",
+            <FileIcon />,
+            actions.navMyBookings
+          )}
           {navBtn("Verify identity", "kyc", <ShieldIcon />, actions.navKyc)}
           {sectionLabel("Account")}
           {navBtn("Profile", "profile", <ProfileIcon />, actions.navProfile)}
@@ -672,6 +678,12 @@ export function Sidebar() {
             "marketplace",
             <ShopIcon />,
             actions.navMarket
+          )}
+          {navBtn(
+            "My service requests",
+            "my_bookings",
+            <FileIcon />,
+            actions.navMyBookings
           )}
           {sectionLabel("Account")}
           {navBtn("Profile", "profile", <ProfileIcon />, actions.navProfile)}
