@@ -6,6 +6,8 @@ class ServiceProviderOut(BaseModel):
     name: str
     phone: str | None
     specialty: str | None
+    avg_rating: float | None = None
+    review_count: int = 0
 
 
 class AssignArtisanRequest(BaseModel):

@@ -1,5 +1,6 @@
 import uuid
 
+import asyncpg
 from asyncpg import Connection
 from fastapi import APIRouter, Depends, HTTPException
 
@@ -13,6 +14,7 @@ from app.models.service_booking import (
     ServiceBookingStatusUpdate,
 )
 from app.models.service_payment import ServicePaymentInitiateRequest, ServicePaymentOut
+from app.models.service_review import ServiceReviewCreate, ServiceReviewOut
 from app.services.hubtel import make_hubtel_client
 
 router = APIRouter()
@@ -285,3 +287,50 @@ async def pay_for_booking(
         payment_id,
     )
     return _row_to_payment_out(row)
+
+
+@router.post("/{booking_id}/review", response_model=ServiceReviewOut, status_code=201)
+async def review_booking(
+    booking_id: str,
+    body: ServiceReviewCreate,
+    user: dict = Depends(get_current_user),
+    conn: Connection = Depends(get_db),
+):
+    booking = await conn.fetchrow(
+        'SELECT "requesterId", "providerId", status FROM service_booking WHERE id = $1',
+        booking_id,
+    )
+    if booking is None:
+        raise HTTPException(status_code=404, detail="Booking not found")
+    if booking["requesterId"] != user["id"]:
+        raise HTTPException(status_code=403, detail="Forbidden")
+    if booking["status"] != "completed":
+        raise HTTPException(status_code=409, detail="Booking is not completed yet")
+
+    try:
+        row = await conn.fetchrow(
+            """
+            INSERT INTO service_review (
+                id, "bookingId", "providerId", "reviewerId", rating, comment, "createdAt"
+            ) VALUES ($1, $2, $3, $4, $5, $6, NOW())
+            RETURNING id, "bookingId", "providerId", "reviewerId", rating, comment, "createdAt"
+            """,
+            str(uuid.uuid4()),
+            booking_id,
+            booking["providerId"],
+            user["id"],
+            body.rating,
+            body.comment,
+        )
+    except asyncpg.UniqueViolationError:
+        raise HTTPException(status_code=409, detail="Booking already reviewed")
+
+    return ServiceReviewOut(
+        id=row["id"],
+        booking_id=row["bookingId"],
+        provider_id=row["providerId"],
+        reviewer_id=row["reviewerId"],
+        rating=row["rating"],
+        comment=row["comment"],
+        created_at=row["createdAt"],
+    )
