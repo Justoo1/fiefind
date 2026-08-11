@@ -335,6 +335,25 @@ export const serviceBookings = pgTable("service_booking", {
   updatedAt: timestamp("updatedAt", { mode: "date" }).notNull().defaultNow(),
 })
 
+export const servicePayments = pgTable("service_payment", {
+  id: text("id")
+    .primaryKey()
+    .$defaultFn(() => crypto.randomUUID()),
+  serviceBookingId: text("serviceBookingId")
+    .notNull()
+    .references(() => serviceBookings.id),
+  payerId: text("payerId")
+    .notNull()
+    .references(() => users.id),
+  amountPesewas: integer("amountPesewas").notNull(),
+  platformFeePesewas: integer("platformFeePesewas").notNull(),
+  providerPayoutPesewas: integer("providerPayoutPesewas").notNull(),
+  hubtelReference: text("hubtelReference"),
+  status: text("status").notNull().default("pending"),
+  paidAt: timestamp("paidAt", { mode: "date" }),
+  createdAt: timestamp("createdAt", { mode: "date" }).notNull().defaultNow(),
+})
+
 // ─── Inferred types ───────────────────────────────────────────────────────────
 
 export type User = typeof users.$inferSelect
@@ -348,3 +367,4 @@ export type KycVerification = typeof kycVerifications.$inferSelect
 export type EscrowEntry = typeof escrowLedger.$inferSelect
 export type Payment = typeof payments.$inferSelect
 export type ServiceBooking = typeof serviceBookings.$inferSelect
+export type ServicePayment = typeof servicePayments.$inferSelect
