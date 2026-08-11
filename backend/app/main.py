@@ -5,7 +5,18 @@ from fastapi.security import APIKeyHeader
 
 from app import db
 from app.middleware.auth import InternalSecretMiddleware
-from app.routers import applications, documents, health, kyc, leases, maintenance, payments, properties, service_providers
+from app.routers import (
+    applications,
+    documents,
+    health,
+    kyc,
+    leases,
+    maintenance,
+    payments,
+    properties,
+    service_bookings,
+    service_providers,
+)
 
 # Declared as security schemes so Swagger UI shows an Authorize dialog.
 # Fill them in once and every "Try it out" request will include the headers.
@@ -43,3 +54,4 @@ app.include_router(payments.router, prefix="/payments", tags=["payments"])
 app.include_router(payments.escrow_router, prefix="/escrow", tags=["escrow"])
 app.include_router(documents.router, tags=["documents"])
 app.include_router(service_providers.router, prefix="/service-providers", tags=["service-providers"])
+app.include_router(service_bookings.router, prefix="/service-bookings", tags=["service-bookings"])
