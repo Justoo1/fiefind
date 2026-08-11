@@ -3,6 +3,7 @@ import uuid
 from asyncpg import Connection
 from fastapi import APIRouter, Depends, HTTPException
 
+from app.config import settings
 from app.db import get_db
 from app.dependencies import get_current_user
 from app.models.service_booking import (
@@ -11,8 +12,32 @@ from app.models.service_booking import (
     ServiceBookingRespond,
     ServiceBookingStatusUpdate,
 )
+from app.models.service_payment import ServicePaymentInitiateRequest, ServicePaymentOut
+from app.services.hubtel import make_hubtel_client
 
 router = APIRouter()
+
+_hubtel = make_hubtel_client(
+    settings.HUBTEL_CLIENT_ID,
+    settings.HUBTEL_CLIENT_SECRET,
+    settings.HUBTEL_ACCOUNT_NUMBER,
+    settings.HUBTEL_CALLBACK_URL,
+)
+
+
+def _row_to_payment_out(row) -> ServicePaymentOut:
+    return ServicePaymentOut(
+        id=row["id"],
+        service_booking_id=row["serviceBookingId"],
+        payer_id=row["payerId"],
+        amount_pesewas=row["amountPesewas"],
+        platform_fee_pesewas=row["platformFeePesewas"],
+        provider_payout_pesewas=row["providerPayoutPesewas"],
+        hubtel_reference=row["hubtelReference"],
+        status=row["status"],
+        paid_at=row["paidAt"],
+        created_at=row["createdAt"],
+    )
 
 _SELECT = """
     SELECT sb.id, sb."requesterId", sb."providerId", sb."propertyId", sb.title,
@@ -203,3 +228,60 @@ async def update_booking_status(
         booking_id,
     )
     return _row_to_out(updated)
+
+
+@router.post("/{booking_id}/pay", response_model=ServicePaymentOut, status_code=201)
+async def pay_for_booking(
+    booking_id: str,
+    body: ServicePaymentInitiateRequest,
+    user: dict = Depends(get_current_user),
+    conn: Connection = Depends(get_db),
+):
+    booking = await conn.fetchrow(
+        'SELECT "requesterId", status, "agreedPricePesewas" FROM service_booking WHERE id = $1',
+        booking_id,
+    )
+    if booking is None:
+        raise HTTPException(status_code=404, detail="Booking not found")
+    if booking["requesterId"] != user["id"]:
+        raise HTTPException(status_code=403, detail="Forbidden")
+    if booking["status"] != "accepted":
+        raise HTTPException(status_code=409, detail="Booking is not ready to be paid for")
+
+    agreed_price = booking["agreedPricePesewas"]
+    platform_fee = agreed_price * settings.PLATFORM_FEE_BPS // 10000
+    provider_payout = agreed_price - platform_fee
+
+    payment_id = str(uuid.uuid4())
+    await conn.execute(
+        """
+        INSERT INTO service_payment (
+            id, "serviceBookingId", "payerId", "amountPesewas",
+            "platformFeePesewas", "providerPayoutPesewas", status, "createdAt"
+        ) VALUES ($1, $2, $3, $4, $5, $6, 'pending', NOW())
+        """,
+        payment_id,
+        booking_id,
+        user["id"],
+        agreed_price,
+        platform_fee,
+        provider_payout,
+    )
+
+    hubtel_ref = await _hubtel.receive_money(
+        amount_pesewas=agreed_price,
+        phone_number=body.phone_number,
+        description=f"Payment for service booking {booking_id}",
+    )
+
+    row = await conn.fetchrow(
+        """
+        UPDATE service_payment SET "hubtelReference" = $1 WHERE id = $2
+        RETURNING id, "serviceBookingId", "payerId", "amountPesewas",
+                  "platformFeePesewas", "providerPayoutPesewas",
+                  "hubtelReference", status, "paidAt", "createdAt"
+        """,
+        hubtel_ref,
+        payment_id,
+    )
+    return _row_to_payment_out(row)

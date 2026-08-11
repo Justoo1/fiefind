@@ -34,7 +34,7 @@ _SELECT_ESCROW = """
     SELECT el.id, el."leaseId", el."fromUserId", el."toUserId", el."amountPesewas",
            el."entryType", el."hubtelReference", el.description, el."createdAt"
     FROM escrow_ledger el
-    JOIN lease l ON l.id = el."leaseId"
+    LEFT JOIN lease l ON l.id = el."leaseId"
 """
 
 
@@ -112,6 +112,52 @@ async def initiate_payment(
     return _row_to_payment(row)
 
 
+async def _settle_service_payment(payload: HubtelWebhookPayload, conn: Connection):
+    service_payment = await conn.fetchrow(
+        """
+        SELECT id, "serviceBookingId", "payerId", "amountPesewas", "hubtelReference"
+        FROM service_payment
+        WHERE "hubtelReference" = $1
+        """,
+        payload.ClientReference,
+    )
+    if service_payment is None:
+        raise HTTPException(status_code=404, detail="Payment not found")
+
+    if payload.Status == "Success":
+        await conn.execute(
+            'UPDATE service_payment SET status = \'paid\', "paidAt" = NOW() WHERE id = $1',
+            service_payment["id"],
+        )
+
+        booking = await conn.fetchrow(
+            'SELECT "providerId" FROM service_booking WHERE id = $1',
+            service_payment["serviceBookingId"],
+        )
+
+        await conn.execute(
+            """
+            INSERT INTO escrow_ledger (
+                id, "leaseId", "fromUserId", "toUserId", "amountPesewas",
+                "entryType", "hubtelReference", description, "createdAt"
+            ) VALUES ($1, NULL, $2, $3, $4, 'escrow_deposit', $5, $6, NOW())
+            """,
+            str(uuid.uuid4()),
+            service_payment["payerId"],
+            booking["providerId"],
+            service_payment["amountPesewas"],
+            service_payment["hubtelReference"],
+            f"Escrow deposit for service booking {service_payment['serviceBookingId']}",
+        )
+    else:
+        await conn.execute(
+            "UPDATE service_payment SET status = 'failed' WHERE id = $1",
+            service_payment["id"],
+        )
+
+    return {"ok": True}
+
+
 @router.post("/webhook", status_code=200)
 async def payment_webhook(
     payload: HubtelWebhookPayload,
@@ -128,7 +174,7 @@ async def payment_webhook(
         payload.ClientReference,
     )
     if payment is None:
-        raise HTTPException(status_code=404, detail="Payment not found")
+        return await _settle_service_payment(payload, conn)
 
     if payload.Status == "Success":
         await conn.execute(
@@ -208,9 +254,13 @@ async def get_escrow_ledger(
             lease_id,
         )
     else:
+        # Lease-scoped rows are matched via the tenant/landlord on the lease;
+        # lease-independent rows (e.g. service booking payments, leaseId is
+        # NULL) are matched by the caller being a direct party on the entry.
         rows = await conn.fetch(
             _SELECT_ESCROW
-            + 'WHERE (l."tenantId" = $1 OR l."landlordId" = $1)'
+            + """WHERE l."tenantId" = $1 OR l."landlordId" = $1
+                  OR el."fromUserId" = $1 OR el."toUserId" = $1"""
             + ' ORDER BY el."createdAt" DESC',
             user["id"],
         )

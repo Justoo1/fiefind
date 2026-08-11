@@ -18,6 +18,9 @@ class Settings(BaseSettings):
     R2_SECRET_ACCESS_KEY: str | None = None
     R2_BUCKET_NAME: str | None = None
     R2_PUBLIC_BASE_URL: str | None = None
+    # Platform fee on paid service bookings, in basis points (800 = 8%).
+    # Starting placeholder, not a measured/negotiated business figure.
+    PLATFORM_FEE_BPS: int = 800
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
 
