@@ -8,6 +8,7 @@ class ServiceProviderOut(BaseModel):
     specialty: str | None
     avg_rating: float | None = None
     review_count: int = 0
+    badge: str | None = None
 
 
 class AssignArtisanRequest(BaseModel):
