@@ -81,6 +81,8 @@ export const ServiceProviderSchema = z.object({
   name: z.string(),
   phone: z.string().nullable(),
   specialty: z.string().nullable(),
+  avg_rating: z.number().nullable(),
+  review_count: z.number(),
 })
 
 export const ServiceProviderListSchema = z.array(ServiceProviderSchema)
@@ -122,6 +124,16 @@ export const ServicePaymentOutSchema = z.object({
   created_at: z.string(),
 })
 
+export const ServiceReviewOutSchema = z.object({
+  id: z.string(),
+  booking_id: z.string(),
+  provider_id: z.string(),
+  reviewer_id: z.string(),
+  rating: z.number(),
+  comment: z.string().nullable(),
+  created_at: z.string(),
+})
+
 export const DocumentOutSchema = z.object({
   id: z.string(),
   property_id: z.string(),
@@ -144,6 +156,7 @@ export type DocumentOut = z.infer<typeof DocumentOutSchema>
 export type ServiceProvider = z.infer<typeof ServiceProviderSchema>
 export type ServiceBookingOut = z.infer<typeof ServiceBookingOutSchema>
 export type ServicePaymentOut = z.infer<typeof ServicePaymentOutSchema>
+export type ServiceReviewOut = z.infer<typeof ServiceReviewOutSchema>
 
 // ── Form validation schemas ───────────────────────────────────────────────────
 

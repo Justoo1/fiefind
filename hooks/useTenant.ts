@@ -20,6 +20,7 @@ import {
   respondToServiceBooking,
   updateServiceBookingStatus,
   payForServiceBooking,
+  reviewServiceBooking,
 } from "@/app/actions/tenant"
 import type { LeaseOut, ServiceProviderOut } from "@/lib/tenant-schemas"
 import type {
@@ -203,5 +204,24 @@ export function usePayForServiceBooking() {
       phoneNumber: string
     }) => payForServiceBooking(bookingId, phoneNumber),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["service-bookings"] }),
+  })
+}
+
+export function useReviewServiceBooking() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({
+      bookingId,
+      rating,
+      comment,
+    }: {
+      bookingId: string
+      rating: number
+      comment?: string
+    }) => reviewServiceBooking(bookingId, rating, comment),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["service-bookings"] })
+      qc.invalidateQueries({ queryKey: ["service-providers"] })
+    },
   })
 }

@@ -11,11 +11,13 @@ import {
   ServiceProviderListSchema,
   ServiceBookingOutSchema,
   ServicePaymentOutSchema,
+  ServiceReviewOutSchema,
   type PropertyOut,
   type DocumentOut,
   type ServiceProvider,
   type ServiceBookingOut,
   type ServicePaymentOut,
+  type ServiceReviewOut,
 } from "@/lib/landlord-schemas"
 import { PaymentOutSchema } from "@/lib/tenant-schemas"
 import type {
@@ -391,6 +393,18 @@ export async function payForServiceBooking(
     body: JSON.stringify({ phone_number: phoneNumber }),
   })
   return ServicePaymentOutSchema.parse(data)
+}
+
+export async function reviewServiceBooking(
+  bookingId: string,
+  rating: number,
+  comment?: string
+): Promise<ServiceReviewOut> {
+  const data = await apiFetch(`/service-bookings/${bookingId}/review`, {
+    method: "POST",
+    body: JSON.stringify({ rating, comment }),
+  })
+  return ServiceReviewOutSchema.parse(data)
 }
 
 export async function assignArtisan(

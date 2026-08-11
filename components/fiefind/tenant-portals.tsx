@@ -24,6 +24,7 @@ import {
   useRespondToServiceBooking,
   useUpdateServiceBookingStatus,
   usePayForServiceBooking,
+  useReviewServiceBooking,
 } from "@/hooks/useTenant"
 import type {
   LeaseOut,
@@ -123,8 +124,11 @@ function serviceProviderToArtisan(sp: ServiceProviderOut): Artisan {
     name: sp.name,
     initials,
     trade: sp.specialty ?? "Service provider",
-    rating: "—",
-    jobs: "—",
+    rating: sp.avg_rating != null ? sp.avg_rating.toFixed(1) : "New",
+    jobs:
+      sp.review_count > 0
+        ? `${sp.review_count} review${sp.review_count === 1 ? "" : "s"}`
+        : "No reviews yet",
     area: "Ghana",
     rate: "Contact for rates",
   }
@@ -3690,8 +3694,12 @@ export function MyServiceRequestsView() {
   const { data: bookings, isLoading } = useServiceBookings()
   const payMutation = usePayForServiceBooking()
   const statusMutation = useUpdateServiceBookingStatus()
+  const reviewMutation = useReviewServiceBooking()
   const [phoneDrafts, setPhoneDrafts] = useState<Record<string, string>>({})
   const [payingId, setPayingId] = useState<string | null>(null)
+  const [ratingDrafts, setRatingDrafts] = useState<Record<string, number>>({})
+  const [commentDrafts, setCommentDrafts] = useState<Record<string, string>>({})
+  const [reviewedIds, setReviewedIds] = useState<Set<string>>(new Set())
 
   function handlePay(bookingId: string) {
     const phone = phoneDrafts[bookingId]?.trim()
@@ -3708,6 +3716,18 @@ export function MyServiceRequestsView() {
 
   function handleCancel(bookingId: string) {
     statusMutation.mutate({ bookingId, status: "cancelled" })
+  }
+
+  function handleReview(bookingId: string) {
+    const rating = ratingDrafts[bookingId]
+    if (!rating) return
+    reviewMutation.mutate(
+      { bookingId, rating, comment: commentDrafts[bookingId]?.trim() },
+      {
+        onSuccess: () => setReviewedIds((s) => new Set(s).add(bookingId)),
+        onError: () => setReviewedIds((s) => new Set(s).add(bookingId)),
+      }
+    )
   }
 
   return (
@@ -3907,6 +3927,93 @@ export function MyServiceRequestsView() {
                   >
                     Mark complete
                   </button>
+                </div>
+              )}
+
+              {b.status === "completed" && !reviewedIds.has(b.id) && (
+                <div style={{ marginTop: 14 }}>
+                  <div
+                    style={{
+                      display: "flex",
+                      gap: 4,
+                      marginBottom: 8,
+                    }}
+                  >
+                    {[1, 2, 3, 4, 5].map((n) => (
+                      <button
+                        key={n}
+                        onClick={() =>
+                          setRatingDrafts((d) => ({ ...d, [b.id]: n }))
+                        }
+                        style={{
+                          background: "none",
+                          border: "none",
+                          cursor: "pointer",
+                          padding: 0,
+                          fontSize: 22,
+                          lineHeight: 1,
+                          color:
+                            (ratingDrafts[b.id] ?? 0) >= n
+                              ? "var(--state-warn)"
+                              : "var(--ff-border)",
+                        }}
+                        aria-label={`Rate ${n} stars`}
+                      >
+                        ★
+                      </button>
+                    ))}
+                  </div>
+                  <textarea
+                    value={commentDrafts[b.id] ?? ""}
+                    onChange={(e) =>
+                      setCommentDrafts((d) => ({
+                        ...d,
+                        [b.id]: e.target.value,
+                      }))
+                    }
+                    placeholder="Leave a comment (optional)"
+                    style={
+                      {
+                        ...inputStyle,
+                        minHeight: 60,
+                        resize: "vertical",
+                        marginBottom: 8,
+                      } as React.CSSProperties
+                    }
+                  />
+                  <button
+                    onClick={() => handleReview(b.id)}
+                    disabled={reviewMutation.isPending || !ratingDrafts[b.id]}
+                    style={{
+                      padding: "10px 16px",
+                      background: "var(--ff-accent)",
+                      color: "#fff",
+                      border: "none",
+                      borderRadius: 8,
+                      font: "inherit",
+                      fontSize: 13,
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      opacity:
+                        reviewMutation.isPending || !ratingDrafts[b.id]
+                          ? 0.6
+                          : 1,
+                    }}
+                  >
+                    Submit review
+                  </button>
+                </div>
+              )}
+
+              {b.status === "completed" && reviewedIds.has(b.id) && (
+                <div
+                  style={{
+                    fontSize: 12,
+                    color: "var(--text-muted)",
+                    marginTop: 14,
+                  }}
+                >
+                  Thanks for your review.
                 </div>
               )}
             </div>
