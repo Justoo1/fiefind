@@ -2,6 +2,103 @@
 @import "tw-animate-css";
 @import "shadcn/tailwind.css";
 
+/* ── FieFind design tokens ── */
+:root {
+  --bg-base: #f9fafb;
+  --bg-surface: #ffffff;
+  --bg-subtle: #f3f4f6;
+  --text-primary: #111827;
+  --text-muted: #6b7280;
+  --ff-accent: #047857;
+  --ff-accent-soft: #ecfdf5;
+  --ff-accent-strong: #065f46;
+  --ff-border: #e5e7eb;
+  --state-error: #dc2626;
+  --state-success: #10b981;
+  --state-warn: #d97706;
+  --ph-a: #eef1f4;
+  --ph-b: #e4e9ef;
+  --shadow-sm: 0 1px 2px rgba(16, 24, 40, 0.06);
+  --shadow-md: 0 4px 14px rgba(16, 24, 40, 0.08);
+  --shadow-lg: 0 16px 40px rgba(16, 24, 40, 0.16);
+}
+
+[data-theme="dark"] {
+  --bg-base: #0b0f14;
+  --bg-surface: #141a21;
+  --bg-subtle: #1b232d;
+  --text-primary: #f3f4f6;
+  --text-muted: #9aa7b4;
+  --ff-accent: #10b981;
+  --ff-accent-soft: #0e2a21;
+  --ff-accent-strong: #34d399;
+  --ff-border: #262f3a;
+  --state-error: #f87171;
+  --state-success: #34d399;
+  --state-warn: #fbbf24;
+  --ph-a: #19212b;
+  --ph-b: #212b36;
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.4);
+  --shadow-md: 0 6px 18px rgba(0, 0, 0, 0.5);
+  --shadow-lg: 0 18px 44px rgba(0, 0, 0, 0.6);
+}
+
+@keyframes ff-fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes ff-slide-up {
+  from { opacity: 0; transform: translateY(14px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes ff-scale-in {
+  from { opacity: 0; transform: scale(0.97); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes ff-pulse-ring {
+  0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.45); }
+  70% { box-shadow: 0 0 0 12px rgba(16, 185, 129, 0); }
+  100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+
+.ff-pulse-ring { animation: ff-pulse-ring 2.2s infinite; }
+.ff-fade-in { animation: ff-fade-in 0.25s ease; }
+.ff-slide-up { animation: ff-slide-up 0.25s ease; }
+.ff-scale-in { animation: ff-scale-in 0.2s ease; }
+
+/* placeholder gradient used for image areas */
+.ph-gradient {
+  background: repeating-linear-gradient(
+    135deg,
+    var(--ph-a) 0 14px,
+    var(--ph-b) 14px 28px
+  );
+}
+
+/* nav button base styles */
+.ff-nav-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 10px 12px;
+  border-radius: 8px;
+  border: none;
+  font-size: 14px;
+  font-weight: 500;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.12s;
+}
+
+::-webkit-scrollbar { width: 8px; height: 8px; }
+::-webkit-scrollbar-thumb {
+  background: var(--ff-border);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
 @custom-variant dark (&:is(.dark *));
 
 @theme inline {
