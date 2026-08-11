@@ -4725,7 +4725,13 @@ export function ProfileView() {
     undefined,
     role === "service_provider"
   )
-  const myBadge = providers?.find((p) => p.id === session?.user?.id)?.badge
+  const myProviderInfo = providers?.find((p) => p.id === session?.user?.id)
+  const myBadge = myProviderInfo?.badge
+  const myRatingLabel = myProviderInfo
+    ? myProviderInfo.avg_rating != null
+      ? `${myProviderInfo.avg_rating.toFixed(1)} (${myProviderInfo.review_count} review${myProviderInfo.review_count === 1 ? "" : "s"})`
+      : "No reviews yet"
+    : "—"
 
   const initials = name
     .split(/\s+/)
@@ -5032,6 +5038,9 @@ export function ProfileView() {
                 value={specialty}
               />
             )}
+            {role === "service_provider" && (
+              <ProfileRow icon="star" label="Rating" value={myRatingLabel} />
+            )}
             <ProfileRow
               icon="calendar"
               label="Member since"
@@ -5191,7 +5200,7 @@ function ProfileRow({
   label,
   value,
 }: {
-  icon: "mail" | "phone" | "calendar" | "briefcase"
+  icon: "mail" | "phone" | "calendar" | "briefcase" | "star"
   label: string
   value: string
 }) {
@@ -5274,6 +5283,17 @@ function ProfileRow({
           >
             <rect x={2} y={7} width={20} height={14} rx={2} />
             <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
+          </svg>
+        )}
+        {icon === "star" && (
+          <svg
+            viewBox="0 0 24 24"
+            width={15}
+            height={15}
+            fill="var(--state-warn)"
+            stroke="none"
+          >
+            <path d="m12 3 2.6 5.5 6 .9-4.3 4.2 1 6L12 17.8 6.7 19.6l1-6L3.4 9.4l6-.9Z" />
           </svg>
         )}
       </div>
