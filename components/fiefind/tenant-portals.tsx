@@ -4727,11 +4727,6 @@ export function ProfileView() {
   )
   const myProviderInfo = providers?.find((p) => p.id === session?.user?.id)
   const myBadge = myProviderInfo?.badge
-  const myRatingLabel = myProviderInfo
-    ? myProviderInfo.avg_rating != null
-      ? `${myProviderInfo.avg_rating.toFixed(1)} (${myProviderInfo.review_count} review${myProviderInfo.review_count === 1 ? "" : "s"})`
-      : "No reviews yet"
-    : "—"
 
   const initials = name
     .split(/\s+/)
@@ -4741,7 +4736,7 @@ export function ProfileView() {
     .join("")
 
   return (
-    <div style={{ maxWidth: 560, margin: "0 auto", padding: "40px 24px" }}>
+    <div style={{ maxWidth: 640, margin: "0 auto", padding: "40px 24px" }}>
       {/* Toast */}
       {toast && (
         <div
@@ -4764,42 +4759,64 @@ export function ProfileView() {
         </div>
       )}
 
-      {/* Avatar + name */}
+      {/* Hero */}
       <div
         style={{
-          display: "flex",
-          alignItems: "center",
-          gap: 20,
-          marginBottom: 32,
+          borderRadius: 16,
+          border: "1px solid var(--ff-border)",
+          background: "var(--bg-surface)",
+          overflow: "hidden",
+          marginBottom: 24,
         }}
       >
         <div
           style={{
-            width: 72,
-            height: 72,
-            borderRadius: "50%",
-            background: "var(--ff-accent)",
-            color: "#fff",
-            display: "flex",
-            alignItems: "center",
-            justifyContent: "center",
-            fontSize: 26,
-            fontWeight: 700,
-            flexShrink: 0,
+            height: 84,
+            background:
+              "linear-gradient(135deg, var(--ff-accent-soft), var(--bg-surface))",
           }}
-        >
-          {initials || "?"}
-        </div>
-        <div>
+        />
+        <div style={{ padding: "0 24px 24px" }}>
           <div
             style={{
-              fontSize: 22,
+              width: 96,
+              height: 96,
+              borderRadius: "50%",
+              background:
+                "linear-gradient(135deg, var(--ff-accent), var(--ff-accent-strong))",
+              color: "#fff",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 32,
+              fontWeight: 700,
+              flexShrink: 0,
+              border: "4px solid var(--bg-surface)",
+              boxShadow: "var(--shadow-md, 0 4px 14px rgba(16,24,40,.08))",
+              marginTop: -48,
+              marginBottom: 14,
+            }}
+          >
+            {initials || "?"}
+          </div>
+          <div
+            style={{
+              fontSize: 24,
               fontWeight: 800,
               letterSpacing: "-.02em",
-              marginBottom: 6,
+              marginBottom: 4,
             }}
           >
             {name}
+          </div>
+          <div
+            style={{
+              fontSize: 13,
+              color: "var(--text-muted)",
+              marginBottom: 14,
+            }}
+          >
+            {email}
           </div>
           <div style={{ display: "flex", gap: 8, flexWrap: "wrap" }}>
             <span
@@ -4855,6 +4872,44 @@ export function ProfileView() {
             )}
           </div>
         </div>
+      </div>
+
+      {/* Stats */}
+      <div
+        style={{
+          display: "grid",
+          gridTemplateColumns:
+            role === "service_provider" ? "repeat(3, 1fr)" : "repeat(2, 1fr)",
+          gap: 14,
+          marginBottom: 24,
+        }}
+      >
+        <StatCard
+          label="Verification"
+          value={idVerified ? "Verified" : "Pending"}
+          valueColor={idVerified ? "var(--state-success)" : "var(--state-warn)"}
+          sub={idVerified ? "Ghana Card confirmed" : "Not yet verified"}
+        />
+        {role === "service_provider" && (
+          <StatCard
+            label="Rating"
+            value={
+              myProviderInfo?.avg_rating != null
+                ? `★ ${myProviderInfo.avg_rating.toFixed(1)}`
+                : "No rating"
+            }
+            sub={
+              myProviderInfo
+                ? `${myProviderInfo.review_count} review${myProviderInfo.review_count === 1 ? "" : "s"}`
+                : "No reviews yet"
+            }
+          />
+        )}
+        <StatCard
+          label="Member since"
+          value={memberSince}
+          sub={roleLabel(role)}
+        />
       </div>
 
       {/* Info card / edit form */}
@@ -5038,14 +5093,6 @@ export function ProfileView() {
                 value={specialty}
               />
             )}
-            {role === "service_provider" && (
-              <ProfileRow icon="star" label="Rating" value={myRatingLabel} />
-            )}
-            <ProfileRow
-              icon="calendar"
-              label="Member since"
-              value={memberSince}
-            />
           </div>
         </div>
       )}
@@ -5200,7 +5247,7 @@ function ProfileRow({
   label,
   value,
 }: {
-  icon: "mail" | "phone" | "calendar" | "briefcase" | "star"
+  icon: "mail" | "phone" | "calendar" | "briefcase"
   label: string
   value: string
 }) {
@@ -5283,17 +5330,6 @@ function ProfileRow({
           >
             <rect x={2} y={7} width={20} height={14} rx={2} />
             <path d="M16 21V5a2 2 0 0 0-2-2h-4a2 2 0 0 0-2 2v16" />
-          </svg>
-        )}
-        {icon === "star" && (
-          <svg
-            viewBox="0 0 24 24"
-            width={15}
-            height={15}
-            fill="var(--state-warn)"
-            stroke="none"
-          >
-            <path d="m12 3 2.6 5.5 6 .9-4.3 4.2 1 6L12 17.8 6.7 19.6l1-6L3.4 9.4l6-.9Z" />
           </svg>
         )}
       </div>
