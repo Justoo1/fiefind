@@ -41,6 +41,12 @@ const initialState: AppState = {
   selectedApp: null,
 }
 
+function landingViewForRole(role: Role): AppView {
+  if (role === "landlord") return "lord_dash"
+  if (role === "service_provider") return "provider_bookings"
+  return "t_dash"
+}
+
 function reducer(state: AppState, action: Action): AppState {
   switch (action.type) {
     case "LOGIN":
@@ -53,7 +59,7 @@ function reducer(state: AppState, action: Action): AppState {
         ...state,
         loggedIn: true,
         role: action.role,
-        view: action.role === "landlord" ? "lord_dash" : "t_dash",
+        view: landingViewForRole(action.role),
       }
     case "SET_AUTH_STEP":
       return { ...state, authStep: action.step }
@@ -61,7 +67,7 @@ function reducer(state: AppState, action: Action): AppState {
       return {
         ...state,
         role: action.role,
-        view: action.role === "landlord" ? "lord_dash" : "t_dash",
+        view: landingViewForRole(action.role),
       }
     case "SET_VIEW":
       return { ...state, view: action.view }
@@ -125,6 +131,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     navLeases: () => dispatch({ type: "SET_VIEW", view: "lord_leases" }),
     navTickets: () => dispatch({ type: "SET_VIEW", view: "lord_tickets" }),
     navDocs: () => dispatch({ type: "SET_VIEW", view: "lord_docs" }),
+    navProviderBookings: () =>
+      dispatch({ type: "SET_VIEW", view: "provider_bookings" }),
     openListing: (p) => dispatch({ type: "OPEN_LISTING", property: p }),
     openWalk: () => dispatch({ type: "SET_VIEW", view: "walk" }),
     closeWalk: () => dispatch({ type: "SET_VIEW", view: "listing" }),

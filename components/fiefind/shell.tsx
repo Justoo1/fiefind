@@ -496,7 +496,8 @@ export function Topbar() {
       </button>
 
       {/* Notifications */}
-      {role === "tenant" ? <TenantNotifBell /> : <LordNotifBell />}
+      {role === "tenant" && <TenantNotifBell />}
+      {role === "landlord" && <LordNotifBell />}
 
       {/* Avatar */}
       <button
@@ -628,6 +629,18 @@ export function Sidebar() {
           {sectionLabel("Account")}
           {navBtn("Profile", "profile", <ProfileIcon />, actions.navProfile)}
         </>
+      ) : role === "service_provider" ? (
+        <>
+          {sectionLabel("Work", true)}
+          {navBtn(
+            "My requests",
+            "provider_bookings",
+            <WrenchIcon />,
+            actions.navProviderBookings
+          )}
+          {sectionLabel("Account")}
+          {navBtn("Profile", "profile", <ProfileIcon />, actions.navProfile)}
+        </>
       ) : (
         <>
           {sectionLabel("Portfolio", true)}
@@ -652,6 +665,13 @@ export function Sidebar() {
             "lord_tickets",
             <WrenchIcon />,
             actions.navTickets
+          )}
+          {sectionLabel("Services")}
+          {navBtn(
+            "Hire a provider",
+            "marketplace",
+            <ShopIcon />,
+            actions.navMarket
           )}
           {sectionLabel("Account")}
           {navBtn("Profile", "profile", <ProfileIcon />, actions.navProfile)}

@@ -1,4 +1,4 @@
-export type Role = "tenant" | "landlord"
+export type Role = "tenant" | "landlord" | "service_provider"
 export type AuthStep = "login" | "signup" | "verify"
 export type Theme = "light" | "dark"
 
@@ -31,7 +31,9 @@ export type LandlordView =
   | "lord_docs"
   | "profile"
 
-export type AppView = TenantView | LandlordView
+export type ProviderView = "provider_bookings" | "profile"
+
+export type AppView = TenantView | LandlordView | ProviderView
 
 export interface Landlord {
   name: string
@@ -221,6 +223,7 @@ export interface AppActions {
   navLeases: () => void
   navTickets: () => void
   navDocs: () => void
+  navProviderBookings: () => void
   openListing: (p: Property) => void
   openWalk: () => void
   closeWalk: () => void

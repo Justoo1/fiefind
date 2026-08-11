@@ -5,6 +5,7 @@ import { useSession } from "next-auth/react"
 import { AppProvider, useApp } from "./context"
 import { AuthPage } from "./auth"
 import { AppShell } from "./shell"
+import type { Role } from "./types"
 
 // Tenant views
 import { DiscoverView } from "./tenant-discover"
@@ -26,6 +27,7 @@ import {
   MaintenanceView,
   MarketplaceView,
   ServiceRequestView,
+  ProviderBookingsView,
   KycView,
   ProfileView,
 } from "./tenant-portals"
@@ -87,7 +89,7 @@ function AppContent() {
 
   useEffect(() => {
     if (status === "authenticated" && session?.user?.role) {
-      actions.setSession(session.user.role as "tenant" | "landlord")
+      actions.setSession(session.user.role as Role)
     } else if (status === "unauthenticated" && loggedIn) {
       actions.signOut()
     }
@@ -135,6 +137,7 @@ function AppContent() {
             {view === "maintenance" && <MaintenanceView />}
             {view === "marketplace" && <MarketplaceView />}
             {view === "service" && <ServiceRequestView />}
+            {view === "provider_bookings" && <ProviderBookingsView />}
             {view === "lord_dash" && <LordDashboardView />}
             {view === "lord_listings" && <LordListingsView />}
             {view === "lord_apps" && <LordApplicationsView />}

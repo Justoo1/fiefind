@@ -19,6 +19,10 @@ import {
   useTenantPropertyDocs,
   useSignDocument,
   useServiceProviders,
+  useCreateServiceBooking,
+  useServiceBookings,
+  useRespondToServiceBooking,
+  useUpdateServiceBookingStatus,
 } from "@/hooks/useTenant"
 import type {
   LeaseOut,
@@ -26,6 +30,7 @@ import type {
   MaintenanceTicketOut,
   KycStatusOut,
   ServiceProviderOut,
+  ServiceBookingOut,
 } from "@/lib/tenant-schemas"
 import type { PropertyDocument } from "./types"
 
@@ -3177,7 +3182,25 @@ export function ServiceRequestView() {
   const artisan = state.selectedArtisan
   const artisanName = artisan?.name ?? "Kofi Plumbing Co."
   const artisanRating = artisan?.rating ?? "4.9"
-  const artisanRate = artisan?.rate ?? "₵80 callout"
+
+  const [title, setTitle] = useState("")
+  const [description, setDescription] = useState("")
+  const [scheduledFor, setScheduledFor] = useState("")
+  const createBooking = useCreateServiceBooking()
+
+  function handleSubmit() {
+    if (!artisan || !title.trim()) return
+    createBooking.mutate(
+      {
+        provider_id: artisan.id,
+        title: title.trim(),
+        category: artisan.trade,
+        description: description.trim() || undefined,
+        scheduled_for: scheduledFor || undefined,
+      },
+      { onSuccess: () => actions.backToMarket() }
+    )
+  }
 
   return (
     <div style={{ maxWidth: 680, margin: "0 auto", padding: "28px 32px 48px" }}>
@@ -3251,7 +3274,8 @@ export function ServiceRequestView() {
           What do you need done?
         </label>
         <input
-          defaultValue=""
+          value={title}
+          onChange={(e) => setTitle(e.target.value)}
           placeholder="e.g. Fix leaking kitchen tap"
           style={inputStyle}
         />
@@ -3267,7 +3291,8 @@ export function ServiceRequestView() {
           Describe the issue
         </label>
         <textarea
-          defaultValue=""
+          value={description}
+          onChange={(e) => setDescription(e.target.value)}
           placeholder="Describe the problem in detail…"
           style={
             {
@@ -3278,37 +3303,39 @@ export function ServiceRequestView() {
           }
         />
 
-        <div
-          style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}
+        <label
+          style={{
+            display: "block",
+            fontSize: 13,
+            fontWeight: 600,
+            marginBottom: 6,
+          }}
         >
-          <div>
-            <label
-              style={{
-                display: "block",
-                fontSize: 13,
-                fontWeight: 600,
-                marginBottom: 6,
-              }}
-            >
-              Property
-            </label>
-            <input defaultValue="Sunlit 2BR · East Legon" style={inputStyle} />
-          </div>
-          <div>
-            <label
-              style={{
-                display: "block",
-                fontSize: 13,
-                fontWeight: 600,
-                marginBottom: 6,
-              }}
-            >
-              Preferred date
-            </label>
-            <input type="date" defaultValue="2026-06-28" style={inputStyle} />
-          </div>
-        </div>
+          Preferred date (optional)
+        </label>
+        <input
+          type="date"
+          value={scheduledFor}
+          onChange={(e) => setScheduledFor(e.target.value)}
+          style={{ ...inputStyle, marginBottom: 0 }}
+        />
       </div>
+
+      {createBooking.isError && (
+        <div
+          style={{
+            marginBottom: 16,
+            padding: "12px 16px",
+            borderRadius: 10,
+            background: "var(--state-error-soft, #fee2e2)",
+            color: "var(--state-error, #ef4444)",
+            fontSize: 13,
+            fontWeight: 600,
+          }}
+        >
+          Something went wrong sending your request. Please try again.
+        </div>
+      )}
 
       <div
         style={{
@@ -3324,19 +3351,10 @@ export function ServiceRequestView() {
       >
         <div>
           <div style={{ fontSize: 13, color: "var(--text-muted)" }}>
-            Estimated callout
+            Pricing
           </div>
-          <div style={{ fontSize: 20, fontWeight: 800 }}>
-            {artisanRate}{" "}
-            <span
-              style={{
-                fontSize: 13,
-                fontWeight: 500,
-                color: "var(--text-muted)",
-              }}
-            >
-              + parts
-            </span>
+          <div style={{ fontSize: 15, fontWeight: 700 }}>
+            {artisanName} will quote a price once they review your request
           </div>
         </div>
         <span
@@ -3346,6 +3364,7 @@ export function ServiceRequestView() {
             gap: 5,
             color: "var(--text-muted)",
             fontSize: 12,
+            flexShrink: 0,
           }}
         >
           <svg
@@ -3361,12 +3380,13 @@ export function ServiceRequestView() {
             <rect x={4} y={11} width={16} height={10} rx={2} />
             <path d="M8 11V7a4 4 0 0 1 8 0v4" />
           </svg>
-          Paid after job is marked complete
+          No payment yet
         </span>
       </div>
 
       <button
-        onClick={actions.navMaint}
+        onClick={handleSubmit}
+        disabled={!artisan || !title.trim() || createBooking.isPending}
         style={{
           width: "100%",
           display: "flex",
@@ -3381,11 +3401,284 @@ export function ServiceRequestView() {
           font: "inherit",
           fontSize: 15,
           fontWeight: 700,
-          cursor: "pointer",
+          cursor:
+            !artisan || !title.trim() || createBooking.isPending
+              ? "not-allowed"
+              : "pointer",
+          opacity:
+            !artisan || !title.trim() || createBooking.isPending ? 0.6 : 1,
         }}
       >
-        Send request to {artisanName}
+        {createBooking.isPending
+          ? "Sending…"
+          : `Send request to ${artisanName}`}
       </button>
+    </div>
+  )
+}
+
+// ── Service Provider: incoming bookings ───────────────────────────────────────
+
+const BOOKING_STATUS_LABEL: Record<string, string> = {
+  requested: "New request",
+  accepted: "Accepted",
+  declined: "Declined",
+  in_progress: "In progress",
+  completed: "Completed",
+  cancelled: "Cancelled",
+}
+
+const BOOKING_STATUS_COLOR: Record<string, string> = {
+  requested: "var(--state-warn, #D97706)",
+  accepted: "var(--ff-accent)",
+  declined: "var(--state-error)",
+  in_progress: "var(--ff-accent)",
+  completed: "var(--state-success)",
+  cancelled: "var(--text-muted)",
+}
+
+function BookingStatusBadge({ status }: { status: string }) {
+  return (
+    <span
+      style={{
+        display: "inline-flex",
+        alignItems: "center",
+        flexShrink: 0,
+        background: BOOKING_STATUS_COLOR[status] ?? "var(--text-muted)",
+        color: "#fff",
+        fontSize: 11,
+        fontWeight: 700,
+        padding: "3px 10px",
+        borderRadius: 999,
+      }}
+    >
+      {BOOKING_STATUS_LABEL[status] ?? status}
+    </span>
+  )
+}
+
+export function ProviderBookingsView() {
+  const { data: bookings, isLoading } = useServiceBookings()
+  const respondMutation = useRespondToServiceBooking()
+  const statusMutation = useUpdateServiceBookingStatus()
+  const [priceDrafts, setPriceDrafts] = useState<Record<string, string>>({})
+
+  function handleAccept(bookingId: string) {
+    const ghs = parseFloat(priceDrafts[bookingId] ?? "")
+    if (!ghs || ghs <= 0) return
+    respondMutation.mutate({
+      bookingId,
+      accept: true,
+      agreedPricePesewas: Math.round(ghs * 100),
+    })
+  }
+
+  function handleDecline(bookingId: string) {
+    respondMutation.mutate({ bookingId, accept: false })
+  }
+
+  function handleStart(bookingId: string) {
+    statusMutation.mutate({ bookingId, status: "in_progress" })
+  }
+
+  return (
+    <div style={{ maxWidth: 780, margin: "0 auto", padding: "28px 32px 48px" }}>
+      <h1
+        style={{
+          fontSize: 24,
+          fontWeight: 800,
+          letterSpacing: "-.02em",
+          margin: "0 0 4px",
+        }}
+      >
+        My service requests
+      </h1>
+      <p
+        style={{ color: "var(--text-muted)", margin: "0 0 22px", fontSize: 14 }}
+      >
+        Requests from tenants and landlords looking to hire you.
+      </p>
+
+      {isLoading ? (
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          {Array.from({ length: 3 }).map((_, i) => (
+            <div
+              key={i}
+              className="ph-gradient"
+              style={{ height: 90, borderRadius: 12 }}
+            />
+          ))}
+        </div>
+      ) : (bookings ?? []).length > 0 ? (
+        <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
+          {(bookings ?? []).map((b) => (
+            <div
+              key={b.id}
+              style={{
+                border: "1px solid var(--ff-border)",
+                borderRadius: 12,
+                background: "var(--bg-surface)",
+                padding: 18,
+              }}
+            >
+              <div
+                style={{
+                  display: "flex",
+                  justifyContent: "space-between",
+                  alignItems: "flex-start",
+                  gap: 12,
+                }}
+              >
+                <div>
+                  <div style={{ fontSize: 15, fontWeight: 700 }}>{b.title}</div>
+                  <div
+                    style={{
+                      fontSize: 12,
+                      color: "var(--text-muted)",
+                      marginTop: 2,
+                    }}
+                  >
+                    {b.category} · Requested by {b.requester_name ?? "—"}
+                    {b.scheduled_for && ` · ${fmtDate(b.scheduled_for)}`}
+                  </div>
+                  {b.description && (
+                    <div
+                      style={{
+                        fontSize: 13,
+                        marginTop: 8,
+                        color: "var(--text-primary)",
+                      }}
+                    >
+                      {b.description}
+                    </div>
+                  )}
+                </div>
+                <BookingStatusBadge status={b.status} />
+              </div>
+
+              {b.status === "requested" && (
+                <div
+                  style={{
+                    display: "flex",
+                    gap: 8,
+                    marginTop: 14,
+                    alignItems: "center",
+                  }}
+                >
+                  <input
+                    type="number"
+                    min={1}
+                    placeholder="Quote price (₵)"
+                    value={priceDrafts[b.id] ?? ""}
+                    onChange={(e) =>
+                      setPriceDrafts((d) => ({ ...d, [b.id]: e.target.value }))
+                    }
+                    style={{ ...inputStyle, marginBottom: 0, width: 140 }}
+                  />
+                  <button
+                    onClick={() => handleAccept(b.id)}
+                    disabled={respondMutation.isPending || !priceDrafts[b.id]}
+                    style={{
+                      padding: "10px 16px",
+                      background: "var(--ff-accent)",
+                      color: "#fff",
+                      border: "none",
+                      borderRadius: 8,
+                      font: "inherit",
+                      fontSize: 13,
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      opacity:
+                        respondMutation.isPending || !priceDrafts[b.id]
+                          ? 0.6
+                          : 1,
+                    }}
+                  >
+                    Accept
+                  </button>
+                  <button
+                    onClick={() => handleDecline(b.id)}
+                    disabled={respondMutation.isPending}
+                    style={{
+                      padding: "10px 16px",
+                      background: "var(--bg-base)",
+                      color: "var(--text-primary)",
+                      border: "1px solid var(--ff-border)",
+                      borderRadius: 8,
+                      font: "inherit",
+                      fontSize: 13,
+                      fontWeight: 600,
+                      cursor: "pointer",
+                    }}
+                  >
+                    Decline
+                  </button>
+                </div>
+              )}
+
+              {b.status === "accepted" && (
+                <div
+                  style={{
+                    display: "flex",
+                    justifyContent: "space-between",
+                    alignItems: "center",
+                    marginTop: 14,
+                  }}
+                >
+                  <span style={{ fontSize: 13, fontWeight: 600 }}>
+                    Agreed price: ₵
+                    {b.agreed_price_pesewas != null
+                      ? pesewasToGhs(b.agreed_price_pesewas)
+                      : "—"}
+                  </span>
+                  <button
+                    onClick={() => handleStart(b.id)}
+                    disabled={statusMutation.isPending}
+                    style={{
+                      padding: "10px 16px",
+                      background: "var(--ff-accent)",
+                      color: "#fff",
+                      border: "none",
+                      borderRadius: 8,
+                      font: "inherit",
+                      fontSize: 13,
+                      fontWeight: 700,
+                      cursor: "pointer",
+                      opacity: statusMutation.isPending ? 0.6 : 1,
+                    }}
+                  >
+                    Start job
+                  </button>
+                </div>
+              )}
+
+              {b.status === "in_progress" && (
+                <div
+                  style={{
+                    fontSize: 12,
+                    color: "var(--text-muted)",
+                    marginTop: 14,
+                  }}
+                >
+                  Waiting for {b.requester_name ?? "the requester"} to confirm
+                  completion.
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      ) : (
+        <div
+          style={{
+            textAlign: "center",
+            padding: "48px 0",
+            color: "var(--text-muted)",
+            fontSize: 14,
+          }}
+        >
+          No service requests yet.
+        </div>
+      )}
     </div>
   )
 }
