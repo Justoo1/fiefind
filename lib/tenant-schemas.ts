@@ -74,9 +74,34 @@ export const ServiceProviderSchema = z.object({
 
 export const ServiceProviderListSchema = z.array(ServiceProviderSchema)
 
+export const ServiceBookingOutSchema = z.object({
+  id: z.string(),
+  requester_id: z.string(),
+  provider_id: z.string(),
+  property_id: z.string().nullable(),
+  title: z.string(),
+  category: z.string(),
+  description: z.string().nullable(),
+  status: z.enum([
+    "requested",
+    "accepted",
+    "declined",
+    "in_progress",
+    "completed",
+    "cancelled",
+  ]),
+  agreed_price_pesewas: z.number().nullable(),
+  scheduled_for: z.string().nullable(),
+  created_at: z.string(),
+  updated_at: z.string(),
+  requester_name: z.string().nullable().optional(),
+  provider_name: z.string().nullable().optional(),
+})
+
 export type LeaseOut = z.infer<typeof LeaseOutSchema>
 export type PaymentOut = z.infer<typeof PaymentOutSchema>
 export type MaintenanceTicketOut = z.infer<typeof MaintenanceTicketOutSchema>
 export type KycStatusOut = z.infer<typeof KycStatusOutSchema>
 export type DocumentOut = z.infer<typeof DocumentOutSchema>
 export type ServiceProviderOut = z.infer<typeof ServiceProviderSchema>
+export type ServiceBookingOut = z.infer<typeof ServiceBookingOutSchema>

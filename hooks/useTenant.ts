@@ -15,6 +15,10 @@ import {
   getTenantPropertyDocuments,
   signDocument,
   getServiceProviders,
+  createServiceBooking,
+  getServiceBookings,
+  respondToServiceBooking,
+  updateServiceBookingStatus,
 } from "@/app/actions/tenant"
 import type { LeaseOut, ServiceProviderOut } from "@/lib/tenant-schemas"
 import type {
@@ -139,5 +143,50 @@ export function useServiceProviders(specialty?: string) {
     queryKey: ["service-providers", specialty ?? "all"],
     queryFn: () => getServiceProviders(specialty),
     staleTime: 5 * 60 * 1000,
+  })
+}
+
+export function useServiceBookings() {
+  return useQuery({
+    queryKey: ["service-bookings"],
+    queryFn: getServiceBookings,
+  })
+}
+
+export function useCreateServiceBooking() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: createServiceBooking,
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["service-bookings"] }),
+  })
+}
+
+export function useRespondToServiceBooking() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({
+      bookingId,
+      accept,
+      agreedPricePesewas,
+    }: {
+      bookingId: string
+      accept: boolean
+      agreedPricePesewas?: number
+    }) => respondToServiceBooking(bookingId, accept, agreedPricePesewas),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["service-bookings"] }),
+  })
+}
+
+export function useUpdateServiceBookingStatus() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({
+      bookingId,
+      status,
+    }: {
+      bookingId: string
+      status: string
+    }) => updateServiceBookingStatus(bookingId, status),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["service-bookings"] }),
   })
 }

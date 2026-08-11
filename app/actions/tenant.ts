@@ -9,8 +9,10 @@ import {
   KycStatusOutSchema,
   DocumentOutSchema,
   ServiceProviderListSchema,
+  ServiceBookingOutSchema,
   type DocumentOut,
   type ServiceProviderOut,
+  type ServiceBookingOut,
 } from "@/lib/tenant-schemas"
 import {
   PropertyOutSchema,
@@ -242,4 +244,52 @@ export async function getServiceProviders(
   const qs = specialty ? `?specialty=${encodeURIComponent(specialty)}` : ""
   const data = await apiFetch(`/service-providers${qs}`)
   return ServiceProviderListSchema.parse(data)
+}
+
+// ── Service bookings ──────────────────────────────────────────────────────────
+
+export async function createServiceBooking(payload: {
+  provider_id: string
+  title: string
+  category: string
+  description?: string
+  property_id?: string
+  scheduled_for?: string
+}): Promise<ServiceBookingOut> {
+  const data = await apiFetch("/service-bookings", {
+    method: "POST",
+    body: JSON.stringify(payload),
+  })
+  return ServiceBookingOutSchema.parse(data)
+}
+
+export async function getServiceBookings(): Promise<ServiceBookingOut[]> {
+  const data = await apiFetch("/service-bookings")
+  return z.array(ServiceBookingOutSchema).parse(data)
+}
+
+export async function respondToServiceBooking(
+  bookingId: string,
+  accept: boolean,
+  agreedPricePesewas?: number
+): Promise<ServiceBookingOut> {
+  const data = await apiFetch(`/service-bookings/${bookingId}/respond`, {
+    method: "PATCH",
+    body: JSON.stringify({
+      accept,
+      agreed_price_pesewas: agreedPricePesewas,
+    }),
+  })
+  return ServiceBookingOutSchema.parse(data)
+}
+
+export async function updateServiceBookingStatus(
+  bookingId: string,
+  status: string
+): Promise<ServiceBookingOut> {
+  const data = await apiFetch(`/service-bookings/${bookingId}/status`, {
+    method: "PATCH",
+    body: JSON.stringify({ status }),
+  })
+  return ServiceBookingOutSchema.parse(data)
 }
