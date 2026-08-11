@@ -78,7 +78,10 @@ async def create_booking(
     conn: Connection = Depends(get_db),
 ):
     provider = await conn.fetchrow(
-        "SELECT id FROM \"user\" WHERE id = $1 AND role = 'service_provider'",
+        """
+        SELECT id FROM "user"
+        WHERE id = $1 AND role = 'service_provider' AND "idVerified" = true
+        """,
         body.provider_id,
     )
     if provider is None:

@@ -28,7 +28,7 @@ _SELECT = """
         WHERE sb.status = 'completed'
         GROUP BY sb."providerId"
     ) c ON c.provider_id = u.id
-    WHERE u.role = 'service_provider'
+    WHERE u.role = 'service_provider' AND u."idVerified" = true
 """
 
 # Starting placeholders, not measured/negotiated thresholds — same caveat as
