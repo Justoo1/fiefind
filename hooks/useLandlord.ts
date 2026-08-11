@@ -30,6 +30,7 @@ import {
   getServiceBookings,
   respondToServiceBooking,
   updateServiceBookingStatus,
+  payForServiceBooking,
 } from "@/app/actions/landlord"
 import { PaymentOutSchema } from "@/lib/tenant-schemas"
 import type { z } from "zod"
@@ -286,6 +287,20 @@ export function useUpdateServiceBookingStatus() {
       bookingId: string
       status: string
     }) => updateServiceBookingStatus(bookingId, status),
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["service-bookings"] }),
+  })
+}
+
+export function usePayForServiceBooking() {
+  const qc = useQueryClient()
+  return useMutation({
+    mutationFn: ({
+      bookingId,
+      phoneNumber,
+    }: {
+      bookingId: string
+      phoneNumber: string
+    }) => payForServiceBooking(bookingId, phoneNumber),
     onSuccess: () => qc.invalidateQueries({ queryKey: ["service-bookings"] }),
   })
 }

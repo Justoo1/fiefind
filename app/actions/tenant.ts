@@ -10,9 +10,11 @@ import {
   DocumentOutSchema,
   ServiceProviderListSchema,
   ServiceBookingOutSchema,
+  ServicePaymentOutSchema,
   type DocumentOut,
   type ServiceProviderOut,
   type ServiceBookingOut,
+  type ServicePaymentOut,
 } from "@/lib/tenant-schemas"
 import {
   PropertyOutSchema,
@@ -292,4 +294,15 @@ export async function updateServiceBookingStatus(
     body: JSON.stringify({ status }),
   })
   return ServiceBookingOutSchema.parse(data)
+}
+
+export async function payForServiceBooking(
+  bookingId: string,
+  phoneNumber: string
+): Promise<ServicePaymentOut> {
+  const data = await apiFetch(`/service-bookings/${bookingId}/pay`, {
+    method: "POST",
+    body: JSON.stringify({ phone_number: phoneNumber }),
+  })
+  return ServicePaymentOutSchema.parse(data)
 }

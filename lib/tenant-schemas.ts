@@ -98,6 +98,19 @@ export const ServiceBookingOutSchema = z.object({
   provider_name: z.string().nullable().optional(),
 })
 
+export const ServicePaymentOutSchema = z.object({
+  id: z.string(),
+  service_booking_id: z.string(),
+  payer_id: z.string(),
+  amount_pesewas: z.number(),
+  platform_fee_pesewas: z.number(),
+  provider_payout_pesewas: z.number(),
+  hubtel_reference: z.string().nullable(),
+  status: z.string(),
+  paid_at: z.string().nullable(),
+  created_at: z.string(),
+})
+
 export type LeaseOut = z.infer<typeof LeaseOutSchema>
 export type PaymentOut = z.infer<typeof PaymentOutSchema>
 export type MaintenanceTicketOut = z.infer<typeof MaintenanceTicketOutSchema>
@@ -105,3 +118,4 @@ export type KycStatusOut = z.infer<typeof KycStatusOutSchema>
 export type DocumentOut = z.infer<typeof DocumentOutSchema>
 export type ServiceProviderOut = z.infer<typeof ServiceProviderSchema>
 export type ServiceBookingOut = z.infer<typeof ServiceBookingOutSchema>
+export type ServicePaymentOut = z.infer<typeof ServicePaymentOutSchema>
