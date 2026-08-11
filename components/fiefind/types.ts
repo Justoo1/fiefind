@@ -109,6 +109,7 @@ export interface Artisan {
   jobs: string
   area: string
   rate: string
+  badge: string | null
 }
 
 export interface LordApp {

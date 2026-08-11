@@ -83,6 +83,7 @@ export const ServiceProviderSchema = z.object({
   specialty: z.string().nullable(),
   avg_rating: z.number().nullable(),
   review_count: z.number(),
+  badge: z.string().nullable(),
 })
 
 export const ServiceProviderListSchema = z.array(ServiceProviderSchema)

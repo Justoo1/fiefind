@@ -140,11 +140,12 @@ export function useSignDocument() {
   })
 }
 
-export function useServiceProviders(specialty?: string) {
+export function useServiceProviders(specialty?: string, enabled = true) {
   return useQuery<ServiceProviderOut[]>({
     queryKey: ["service-providers", specialty ?? "all"],
     queryFn: () => getServiceProviders(specialty),
     staleTime: 5 * 60 * 1000,
+    enabled,
   })
 }
 

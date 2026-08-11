@@ -131,6 +131,7 @@ function serviceProviderToArtisan(sp: ServiceProviderOut): Artisan {
         : "No reviews yet",
     area: "Ghana",
     rate: "Contact for rates",
+    badge: sp.badge,
   }
 }
 
@@ -3062,6 +3063,26 @@ function ArtisanCard({
           </div>
         </div>
       </div>
+
+      {a.badge && (
+        <span
+          style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: 4,
+            alignSelf: "flex-start",
+            background: "var(--ff-accent)",
+            color: "#fff",
+            fontSize: 11,
+            fontWeight: 700,
+            padding: "3px 9px",
+            borderRadius: 999,
+            marginBottom: 10,
+          }}
+        >
+          🏆 {a.badge}
+        </span>
+      )}
       <div
         style={{
           display: "flex",
@@ -4700,6 +4721,12 @@ export function ProfileView() {
   const specialty = profile?.specialty ?? "—"
   const memberSince = profile ? fmtMemberSince(profile.createdAt) : "—"
 
+  const { data: providers } = useServiceProviders(
+    undefined,
+    role === "service_provider"
+  )
+  const myBadge = providers?.find((p) => p.id === session?.user?.id)?.badge
+
   const initials = name
     .split(/\s+/)
     .filter(Boolean)
@@ -4801,6 +4828,23 @@ export function ProfileView() {
                 }}
               >
                 {idVerified ? "✓ KYC Verified" : "KYC Pending"}
+              </span>
+            )}
+            {role === "service_provider" && myBadge && (
+              <span
+                style={{
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: 5,
+                  background: "var(--ff-accent)",
+                  color: "#fff",
+                  fontSize: 12,
+                  fontWeight: 700,
+                  padding: "3px 10px",
+                  borderRadius: 999,
+                }}
+              >
+                🏆 {myBadge}
               </span>
             )}
           </div>
